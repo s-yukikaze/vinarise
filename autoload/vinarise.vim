@@ -37,7 +37,23 @@ if s:exists_vimproc_version < 401
   finish
 endif"}}}
 " Check Python."{{{
-if !has('python')
+let s:if_pythons_available = filter([
+\   {'python': 'python3','pyfile': 'py3file'},
+\   {'python': 'python', 'pyfile': 'pyfile'}
+\ ],
+\ 'has(v:val.python) != 0')
+
+if !exists('g:if_python_use')
+  let g:if_python_use = 'auto'
+endif
+if g:if_python_use ==# 'auto' && len(s:if_pythons_available) > 0
+  let g:if_python_use = s:if_pythons_available[0].python
+endif
+
+let s:if_python_found = filter(s:if_pythons_available, 'v:val.python ==# g:if_python_use')
+if len(s:if_python_found) > 0
+  let s:if_python = s:if_python_found[0]
+else
   echoerr 'Vinarise requires python interface.'
   finish
 endif
@@ -103,13 +119,13 @@ function! vinarise#open(filename, context)"{{{
   endif
 
   if !s:loaded_vinarise
-    execute 'pyfile' s:plugin_path.'/vinarise/vinarise.py'
+    execute s:if_python.pyfile s:plugin_path.'/vinarise/vinarise.py'
     let s:loaded_vinarise = 1
   endif
 
   " try
-    execute 'python' g:vinarise_var_prefix.' = VinariseBuffer()'
-    execute 'python' g:vinarise_var_prefix.
+    execute s:if_python.python g:vinarise_var_prefix.' = VinariseBuffer()'
+    execute s:if_python.python g:vinarise_var_prefix.
           \ ".open(vim.eval('iconv(filename, &encoding, &termencoding)'),".
           \ "vim.eval('vinarise#util#is_windows()'))"
   " catch
@@ -271,7 +287,7 @@ function! s:initialize_vinarise_buffer(filename, filesize)"{{{
     call vinarise#release_buffer(bufnr('%'))
   endif
 
-  execute 'python' g:vinarise_var_prefix.bufnr('%').
+  execute s:if_python.python g:vinarise_var_prefix.bufnr('%').
         \ ' = '.g:vinarise_var_prefix
 
   let b:vinarise = {
@@ -284,52 +300,52 @@ function! s:initialize_vinarise_buffer(filename, filesize)"{{{
 
   " Wrapper functions.
   function! b:vinarise.open(filename)"{{{
-    execute 'python' self.python.
+    execute s:if_python.python self.python.
           \ ".open(vim.eval('iconv(a:filename, &encoding, &termencoding)'),".
           \ "vim.eval('vinarise#util#is_windows()'))"
   endfunction"}}}
   function! b:vinarise.close()"{{{
-    execute 'python' self.python.'.close()'
+    execute s:if_python.python self.python.'.close()'
   endfunction"}}}
   function! b:vinarise.write(path)"{{{
-    execute 'python' self.python.'.write('
+    execute s:if_python.python self.python.'.write('
           \ "vim.eval('a:path'))"
   endfunction"}}}
   function! b:vinarise.get_byte(address)"{{{
-    execute 'python' 'vim.command("let num = " + str('.
+    execute s:if_python.python 'vim.command("let num = " + str('.
           \ self.python .'.get_byte(vim.eval("a:address"))))'
     return num
   endfunction"}}}
   function! b:vinarise.set_byte(address, value)"{{{
-    execute 'python' self.python .
+    execute s:if_python.python self.python .
           \ '.set_byte(vim.eval("a:address"), vim.eval("a:value"))'
   endfunction"}}}
   function! b:vinarise.get_percentage(address)"{{{
-    execute 'python' 'vim.command("let percentage = " + str('.
+    execute s:if_python.python 'vim.command("let percentage = " + str('.
           \ b:vinarise.python .'.get_percentage(vim.eval("a:address"))))'
     return percentage
   endfunction"}}}
   function! b:vinarise.get_percentage_address(percentage)"{{{
-    execute 'python' 'vim.command("let address = " + str('.
+    execute s:if_python.python 'vim.command("let address = " + str('.
           \ b:vinarise.python .
           \ ".get_percentage_address(vim.eval('a:percentage'))))"
     return address
   endfunction"}}}
   function! b:vinarise.find(address, str)"{{{
-    execute 'python' 'vim.command("let address = " + str('.
+    execute s:if_python.python 'vim.command("let address = " + str('.
           \ b:vinarise.python .
           \ ".find(vim.eval('a:address'), vim.eval('a:str'))))"
     return address
   endfunction"}}}
   function! b:vinarise.rfind(address, str)"{{{
-    execute 'python' 'vim.command("let address = " + str('.
+    execute s:if_python.python 'vim.command("let address = " + str('.
           \ b:vinarise.python .
           \ ".rfind(vim.eval('a:address'), vim.eval('a:str'))))"
     return address
   endfunction"}}}
   function! b:vinarise.find_regexp(address, str)"{{{
     try
-      execute 'python' 'vim.command("let address = " + str('.
+      execute s:if_python.python 'vim.command("let address = " + str('.
             \ b:vinarise.python .
             \ ".find_regexp(vim.eval('a:address'), vim.eval('a:str'))))"
     catch

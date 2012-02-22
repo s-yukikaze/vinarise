@@ -3,8 +3,11 @@ import os
 import re
 import vim
 import os.path
+from sys import version_info
 
 class VinariseBuffer:
+    __PYTHON_VAR__ = sys.version_info[:3]
+
     def open(self, path, is_windows):
         # init vars
         self.file = open(path, 'rb')
@@ -43,17 +46,26 @@ class VinariseBuffer:
             # Re open file.
             self.open(path, is_windows)
 
-    def get_byte(self, addr):
-        return ord(self.mmap[int(addr)])
+    if __PYTHON_VAR__ < (3, 0, 0):
+        # Python < 3.0.0 : mmap.mmap[] behaves like string.
+        def get_byte(self, addr):
+            return ord(self.mmap[int(addr)])
 
-    def set_byte(self, addr, value):
-        self.mmap[int(addr)] = chr(int(value))
+        def set_byte(self, addr, value):
+            self.mmap[int(addr)] = chr(int(value))
+    else:
+        # Python >= 3.0.0: mmap.mmap[] behaves like bytearray.
+        def get_byte(self, addr):
+            return self.mmap[int(addr)]
+
+        def set_byte(self, addr, value):
+            self.mmap[int(addr)] = int(value)
 
     def get_percentage(self, address):
-        return (int(address)*100) / os.path.getsize(self.path)
+        return (int(address)*100) // os.path.getsize(self.path)
 
     def get_percentage_address(self, percent):
-        return (os.path.getsize(self.path) * int(percent)) / 100
+        return (os.path.getsize(self.path) * int(percent)) // 100
 
     def find(self, address, str):
         return self.mmap.find(str, int(address))
