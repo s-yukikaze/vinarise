@@ -69,7 +69,7 @@ class VinariseBuffer:
         def get_bytes(self, addr, count):
             if int(count) == 0:
                 return []
-            return self.mmap[int(addr) : int(addr)+int(count)-1]
+            return [x for x in self.mmap[int(addr) : int(addr)+int(count)-1]]
 
     def get_percentage(self, address):
         return (int(address)*100) // (os.path.getsize(self.path) - 1)
