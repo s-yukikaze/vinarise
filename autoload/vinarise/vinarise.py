@@ -53,6 +53,11 @@ class VinariseBuffer:
 
         def set_byte(self, addr, value):
             self.mmap[int(addr)] = chr(int(value))
+
+        def get_bytes(self, addr, count):
+            if int(count) == 0:
+                return []
+            return [ord(x) for x in self.mmap[int(addr) : int(addr)+int(count)-1]]
     else:
         # Python >= 3.0.0: mmap.mmap[] behaves like bytearray.
         def get_byte(self, addr):
@@ -61,8 +66,13 @@ class VinariseBuffer:
         def set_byte(self, addr, value):
             self.mmap[int(addr)] = int(value)
 
+        def get_bytes(self, addr, count):
+            if int(count) == 0:
+                return []
+            return self.mmap[int(addr) : int(addr)+int(count)-1]
+
     def get_percentage(self, address):
-        return (int(address)*100) // os.path.getsize(self.path)
+        return (int(address)*100) // (os.path.getsize(self.path) - 1)
 
     def get_percentage_address(self, percent):
         return (os.path.getsize(self.path) * int(percent)) // 100

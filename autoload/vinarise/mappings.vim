@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: mappings.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 22 Feb 2012.
+" Last Modified: 24 Feb 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -83,7 +83,7 @@ function! vinarise#mappings#define_default_mappings()"{{{
         \    b:vinarise.last_search_type, 1, b:vinarise.last_search_string)<CR>
   "}}}
 
-  if exists('g:vimshell_no_default_keymappings') && g:vimshell_no_default_keymappings
+  if exists('g:vinarise_no_default_keymappings') && g:vinarise_no_default_keymappings
     return
   endif
 
@@ -119,7 +119,6 @@ function! vinarise#mappings#define_default_mappings()"{{{
   nmap <buffer> N          <Plug>(vinarise_search_last_pattern_reverse)
 endfunction"}}}
 
-" VimShell key-mappings functions.
 function! s:edit_with_vim()"{{{
   let save_auto_detect = g:vinarise_enable_auto_detect
   let g:vinarise_enable_auto_detect = 0
@@ -157,6 +156,7 @@ function! s:exit()"{{{
     endif
   endif
 
+  call vinarise#release_buffer(bufnr('%'))
   call vinarise#util#delete_buffer()
 endfunction"}}}
 function! s:print_current_position()"{{{
@@ -165,8 +165,8 @@ function! s:print_current_position()"{{{
         \ vinarise#get_cur_text(getline('.'), col('.')))
   let percentage = b:vinarise.get_percentage(address)
 
-  echo printf('[%s] %8d / %8d byte (%3d%%)',
-        \ type, address, b:vinarise.filesize, percentage)
+  echo printf('[%s] %8d / %8d (%3d%%)',
+        \ type, address, b:vinarise.filesize - 1, percentage)
 endfunction"}}}
 function! s:change_current_address()"{{{
   " Get current address.
@@ -195,7 +195,7 @@ function! s:change_current_address()"{{{
   setlocal modifiable
 
   " Change current line.
-  call setline('.', vinarise#make_line(address / 16))
+  call setline('.', vinarise#make_line(address / b:vinarise.width))
   setlocal modified
 
   setlocal nomodifiable
@@ -206,17 +206,18 @@ function! s:move_col(is_next)"{{{
         \ vinarise#get_cur_text(getline('.'), col('.')))
   if a:is_next
     if type ==# 'hex'
-      return (address % 16 == 15) ?
+      return (address % b:vinarise.width == (b:vinarise.width - 1)) ?
             \ 'w3l' : 'w'
     else
-      return (type ==# 'ascii' && address % 16 == 15) ?
+      return (type ==# 'ascii' &&
+            \ address % b:vinarise.width == (b:vinarise.width - 1)) ?
             \ '' : 'l'
     endif
   else
     if type ==# 'hex'
-      return (address % 16 == 0) ? '' : 'b'
+      return (address % b:vinarise.width == 0) ? '' : 'b'
     else
-      return (type ==# 'ascii' && address % 16 == 0) ?
+      return (type ==# 'ascii' && address % b:vinarise.width == 0) ?
             \ 'b4h' : 'h'
     endif
   endif
@@ -237,7 +238,7 @@ endfunction "}}}
 function! s:move_line_address(is_first)"{{{
   let [type, address] = vinarise#parse_address(getline('.'),
         \ vinarise#get_cur_text(getline('.'), col('.')))
-  let address = address / 16 * 16
+  let address = (address / b:vinarise.width) * b:vinarise.width
   if !a:is_first
     let address += 15
   endif
