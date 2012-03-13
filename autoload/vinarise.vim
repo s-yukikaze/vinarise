@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: vinarise.vim
 " AUTHOR:  Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 05 Mar 2012.
+" Last Modified: 07 Mar 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -22,7 +22,7 @@
 "     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 "     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 " }}}
-" Version: 0.3, for Vim 7.0
+" Version: 0.3, for Vim 7.2
 "=============================================================================
 
 " Check Python."{{{
@@ -119,10 +119,11 @@ function! vinarise#open(filename, context)"{{{
     let s:loaded_vinarise = 1
   endif
 
+  execute s:if_python.python g:vinarise_var_prefix.' = VinariseBuffer()'
+
   " try
-    execute s:if_python.python g:vinarise_var_prefix.' = VinariseBuffer()'
     execute s:if_python.python g:vinarise_var_prefix.
-          \ ".open(vim.eval('iconv(filename, &encoding, &termencoding)'),".
+          \ ".open(vim.eval('iconv(filename, &encoding, \"char\")'),".
           \ "vim.eval('vinarise#util#is_windows()'))"
   " catch
     " call vinarise#print_error(v:exception)
@@ -336,7 +337,7 @@ function! s:initialize_vinarise_buffer(context, filename, filesize)"{{{
   " Wrapper functions.
   function! b:vinarise.open(filename)"{{{
     execute s:if_python.python self.python.
-          \ ".open(vim.eval('iconv(a:filename, &encoding, &termencoding)'),".
+          \ ".open(vim.eval('iconv(filename, &encoding, \"char\")'),".
           \ "vim.eval('vinarise#util#is_windows()'))"
   endfunction"}}}
   function! b:vinarise.close()"{{{
