@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: mappings.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 25 Feb 2012.
+" Last Modified: 27 Mar 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -33,10 +33,10 @@ function! vinarise#mappings#define_default_mappings()"{{{
         \ :<C-u>call <SID>hide()<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_exit)
         \ :<C-u>call <SID>exit()<CR>
-  nnoremap <buffer><expr> <Plug>(vinarise_next_column)
-        \ <SID>move_col(1)
-  nnoremap <buffer><expr> <Plug>(vinarise_prev_column)
-        \ <SID>move_col(0)
+  nnoremap <buffer><silent> <Plug>(vinarise_next_column)
+        \ :<C-u>call <SID>move_col(1)<CR>
+  nnoremap <buffer><silent> <Plug>(vinarise_prev_column)
+        \ :<C-u>call <SID>move_col(0)<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_line_first_address)
         \ :<C-u>call <SID>move_line_address(1)<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_line_last_address)
@@ -81,9 +81,14 @@ function! vinarise#mappings#define_default_mappings()"{{{
   nnoremap <buffer><silent> <Plug>(vinarise_search_last_pattern_reverse)
         \ :<C-u>call <SID>search_buffer(
         \    b:vinarise.last_search_type, 1, b:vinarise.last_search_string)<CR>
+  nnoremap <buffer><silent> <Plug>(vinarise_change_encoding)
+        \ :<C-u>call <SID>change_encoding()<CR>
+  nnoremap <buffer><silent> <Plug>(vinarise_redraw)
+        \ :<C-u>call vinarise#mappings#redraw()<CR>
   "}}}
 
-  if exists('g:vinarise_no_default_keymappings') && g:vinarise_no_default_keymappings
+  if exists('g:vinarise_no_default_keymappings') &&
+        \ g:vinarise_no_default_keymappings
     return
   endif
 
@@ -117,6 +122,8 @@ function! vinarise#mappings#define_default_mappings()"{{{
   nmap <buffer> e/         <Plug>(vinarise_search_regexp)
   nmap <buffer> n          <Plug>(vinarise_search_last_pattern)
   nmap <buffer> N          <Plug>(vinarise_search_last_pattern_reverse)
+  nmap <buffer> E          <Plug>(vinarise_change_encoding)
+  nmap <buffer> <C-l>     <Plug>(vinarise_redraw)
 endfunction"}}}
 
 function! vinarise#mappings#move_to_address(address)"{{{
@@ -129,7 +136,12 @@ function! vinarise#mappings#move_to_address(address)"{{{
   let modified_save = &l:modified
 
   silent % delete _
-  call vinarise#print_lines(100, address)
+
+  let first_address = address - (winheight(0)/2) * b:vinarise.width
+  if first_address < 0
+    let first_address = 0
+  endif
+  call vinarise#print_lines(winheight(0), first_address)
 
   let &l:modified = modified_save
   setlocal nomodifiable
@@ -137,6 +149,14 @@ function! vinarise#mappings#move_to_address(address)"{{{
   " Set cursor.
   call vinarise#set_cursor_address(address)
 endfunction "}}}
+function! vinarise#mappings#redraw()"{{{
+  " Redraw vinarise buffer.
+
+  let [_, address] = vinarise#parse_address(getline('.'),
+        \ vinarise#get_cur_text(getline('.'), col('.')))
+  call vinarise#mappings#move_to_address(address)
+endfunction "}}}
+
 function! s:edit_with_vim()"{{{
   let save_auto_detect = g:vinarise_enable_auto_detect
   let g:vinarise_enable_auto_detect = 0
@@ -224,19 +244,26 @@ function! s:move_col(is_next)"{{{
         \ vinarise#get_cur_text(getline('.'), col('.')))
   if a:is_next
     if type ==# 'hex'
-      return (address % b:vinarise.width == (b:vinarise.width - 1)) ?
-            \ 'w3l' : 'w'
-    else
-      return (type ==# 'ascii' &&
-            \ address % b:vinarise.width == (b:vinarise.width - 1)) ?
-            \ '' : 'l'
+      if (address % b:vinarise.width) == (b:vinarise.width - 1)
+        silent call search('[^ |]', 'W')
+      else
+        normal! w
+      endif
+    elseif !(type ==# 'ascii' &&
+            \ address % b:vinarise.width == (b:vinarise.width - 1))
+      normal! l
     endif
   else
     if type ==# 'hex'
-      return (address % b:vinarise.width == 0) ? '' : 'b'
+      if address % b:vinarise.width != 0
+        normal! b
+      endif
     else
-      return (type ==# 'ascii' && address % b:vinarise.width == 0) ?
-            \ 'b4h' : 'h'
+      if type ==# 'ascii' && address % b:vinarise.width == 0
+        silent call search('[^ |]', 'bW')
+      else
+        normal! h
+      endif
     endif
   endif
 endfunction "}}}
@@ -350,15 +377,39 @@ function! s:search_buffer(type, is_reverse, string)"{{{
   if a:string != ''
     let string = a:string
   elseif a:type ==# 'binary'
-    let binary = input('Please input search binary : ', '0x')
+    let string = input('Please input search binary(! is not pattern) : ', '0x')
     redraw
+  elseif a:type ==# 'string'
+    let string = iconv(
+          \ input('Please input search string : '), &encoding,
+          \   vinarise#get_current_vinarise().context.encoding)
+    redraw
+  elseif a:type ==# 'regexp'
+    let string = input('Please input Python regexp : ')
+    redraw
+  endif
 
-    if binary =~ '^0x\x\+$'
-      " Convert hex offset.
-      let binary = str2nr(binary, 16)
+  if string == ''
+    echo 'Canceled.'
+    return
+  endif
+
+  if a:type ==# 'binary'
+    let binary = string
+
+    let is_not_pattern = binary =~ '^!'
+    if is_not_pattern
+      let binary = binary[1:]
     endif
 
-    if binary !~ '^\d\+$'
+    if binary =~ '^0x\x\+$'
+      let binary = binary[2:]
+    else
+      " Convert to hex offset.
+      let binary = printf('%x', binary)
+    endif
+
+    if binary !~ '^\x\+$'
       echo 'Invalid input.'
       return
     endif
@@ -367,26 +418,6 @@ function! s:search_buffer(type, is_reverse, string)"{{{
       " Add prefix "0".
       let binary = '0' . binary
     endif
-
-    " Convert binary.
-    let string = ''
-    let i = 0
-    while i < len(binary)
-      let string .= nr2char(
-            \ str2nr(binary[i : i+1], 10))
-
-      let i += 2
-    endwhile
-  elseif a:type ==# 'string'
-    let string = input('Please input search string : ')
-  elseif a:type ==# 'regexp'
-    let string = input('Please input Python regexp : ')
-  endif
-
-  redraw
-  if string == ''
-    echo 'Canceled.'
-    return
   endif
 
   let [_, start] = vinarise#parse_address(getline('.'),
@@ -396,12 +427,23 @@ function! s:search_buffer(type, is_reverse, string)"{{{
   else
     let start += 1
   endif
-  if a:type ==# 'regexp'
+
+  if a:type ==# 'binary'
+    if is_not_pattern
+      let address = a:is_reverse ?
+            \ b:vinarise.rfind_binary_not(start, binary) :
+            \ b:vinarise.find_binary_not(start, binary)
+    else
+      let address = a:is_reverse ?
+            \ b:vinarise.rfind_binary(start, binary) :
+            \ b:vinarise.find_binary(start, binary)
+    endif
+  elseif a:type ==# 'regexp'
     let address = b:vinarise.find_regexp(start, string)
-  elseif a:is_reverse
-    let address = b:vinarise.rfind(start, string)
   else
-    let address = b:vinarise.find(start, string)
+    let address = a:is_reverse ?
+          \ b:vinarise.rfind(start, string) :
+          \ b:vinarise.find(start, string)
   endif
 
   if address < 0
@@ -409,20 +451,32 @@ function! s:search_buffer(type, is_reverse, string)"{{{
     return
   endif
 
-  setlocal modifiable
-  let modified_save = &l:modified
-
-  silent % delete _
-  call vinarise#print_lines(winheight(0), address)
-
-  let &l:modified = modified_save
-  setlocal nomodifiable
+  call vinarise#mappings#move_to_address(address)
 
   let b:vinarise.last_search_string = string
   let b:vinarise.last_search_type = a:type
-
-  " Set cursor.
-  call vinarise#set_cursor_address(address)
 endfunction "}}}
+function! s:change_encoding()"{{{
+  let context = vinarise#get_current_vinarise().context
+  let encoding = input('Please input new encoding type: '.
+        \ context.encoding . ' -> ', '', 'customlist,vinarise#complete_encodings')
+  redraw
+
+  if encoding == ''
+    return
+  elseif encoding !~?
+        \ vinarise#multibyte#get_supported_encodings_pattern()
+    call vinarise#print_error(
+          \ 'encoding type: "'.encoding.'" is not supported.')
+    return
+  endif
+
+  " Change encoding type.
+  let context.encoding = encoding
+
+  " Redraw vinarise buffer.
+  call vinarise#mappings#redraw()
+endfunction"}}}
+
 
 " vim: foldmethod=marker

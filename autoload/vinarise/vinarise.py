@@ -13,9 +13,9 @@ class VinariseBuffer:
         self.file = open(path, 'rb')
         self.path = path
         self.is_windows = is_windows
-        fsize = os.path.getsize(self.path)
+        self.fsize = os.path.getsize(self.path)
         mmap_max = 0
-        if fsize > 1000000000:
+        if self.fsize > 1000000000:
             mmap_max = 1000000000
 
         if int(is_windows):
@@ -71,6 +71,34 @@ class VinariseBuffer:
                 return []
             return [x for x in self.mmap[int(addr) : int(addr)+int(count)]]
 
+    def get_int8(self, addr):
+        return self.get_byte(addr)
+
+    def get_int16_le(self, addr):
+        bytes = self.get_bytes(addr, 2)
+        return bytes[0] + bytes[1] * 0x100
+
+    def get_int16_be(self, addr):
+        bytes = self.get_bytes(addr, 2)
+        return bytes[1] + bytes[0] * 0x100
+
+    def get_int32_le(self, addr):
+        bytes = self.get_bytes(addr, 4)
+        return bytes[0] +  bytes[1] * 0x100 + bytes[2] * 0x10000 + bytes[3] * 0x1000000
+
+    def get_int32_be(self, addr):
+        bytes = self.get_bytes(addr, 4)
+        return bytes[3] +  bytes[2] * 0x100 + bytes[1] * 0x10000 + bytes[0] * 0x1000000
+
+    def get_chars(self, addr, count, from_enc, to_enc):
+        if int(count) == 0:
+            return ""
+        chars = self.mmap[int(addr) : int(addr)+int(count)]
+        return unicode(chars, from_enc).encode(to_enc, 'replace')
+
+    def set_byte(self, addr, value):
+        self.mmap[int(addr)] = chr(int(value))
+
     def get_percentage(self, address):
         return (int(address)*100) // (os.path.getsize(self.path) - 1)
 
@@ -90,4 +118,42 @@ class VinariseBuffer:
             return -1
         else:
             return m.start()
+
+    def find_binary(self, address, binary):
+        addr = int(address)
+        bytes = [int(binary[i*2 : i*2+2], 16) for i in range(len(binary) / 2)]
+        while addr < self.fsize:
+            if self.get_byte(addr) == bytes[0] and bytes == self.get_bytes(addr, len(bytes)):
+                print bytes == self.get_bytes(addr, len(bytes))
+                print self.get_bytes(addr, len(bytes))
+                return addr
+            addr += 1
+        return -1
+
+    def rfind_binary(self, address, binary):
+        addr = int(address)
+        bytes = [int(binary[i*2 : i*2+2], 16) for i in range(len(binary) / 2)]
+        while addr < self.fsize:
+            if self.get_byte(addr) == bytes[0] and bytes == self.get_bytes(addr, len(bytes)):
+                return addr
+            addr -= 1
+        return -1
+
+    def find_binary_not(self, address, binary):
+        addr = int(address)
+        bytes = [int(binary[i*2 : i*2+2], 16) for i in range(len(binary) / 2)]
+        while addr < self.fsize:
+            if self.get_byte(addr) != bytes[0] and bytes != self.get_bytes(addr, len(bytes)):
+                return addr
+            addr += 1
+        return -1
+
+    def rfind_binary_not(self, address, binary):
+        addr = int(address)
+        bytes = [int(binary[i*2 : i*2+2], 16) for i in range(len(binary) / 2)]
+        while addr < self.fsize:
+            if self.get_byte(addr) != bytes[0] and bytes != self.get_bytes(addr, len(bytes)):
+                return addr
+            addr -= 1
+        return -1
 
