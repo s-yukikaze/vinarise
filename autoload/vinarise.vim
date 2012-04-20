@@ -448,26 +448,16 @@ function! s:initialize_vinarise_buffer(context, filename, filesize)"{{{
           \ ".get_percentage_address(vim.eval('a:percentage'))))"
     return address
   endfunction"}}}
-<<<<<<< HEAD
-  function! b:vinarise.find(address, str)"{{{
-    execute s:if_python.python 'vim.command("let address = " + str('.
-=======
   function! b:vinarise.find(address, str, from, to)"{{{
-    execute 'python' 'vim.command("let address = " + str('.
->>>>>>> 2f8b78e3db234fdaa462a9c9736471f217a49881
+    execute s:if_python.python 'vim.command("let address = " + str('.
           \ self.python .
           \ ".find(vim.eval('a:address'), vim.eval('a:str'),"
           \ ."vim.eval('a:from'),"
           \ ."vim.eval('a:to'))))"
     return address
   endfunction"}}}
-<<<<<<< HEAD
-  function! b:vinarise.rfind(address, str)"{{{
-    execute s:if_python.python 'vim.command("let address = " + str('.
-=======
   function! b:vinarise.rfind(address, str, from, to)"{{{
-    execute 'python' 'vim.command("let address = " + str('.
->>>>>>> 2f8b78e3db234fdaa462a9c9736471f217a49881
+    execute s:if_python.python 'vim.command("let address = " + str('.
           \ self.python .
           \ ".rfind(vim.eval('a:address'), vim.eval('a:str'),"
           \ ."vim.eval('a:from'),"
