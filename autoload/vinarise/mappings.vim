@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: mappings.vim
 " AUTHOR: Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 27 Mar 2012.
+" Last Modified: 06 Apr 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -57,6 +57,9 @@ function! vinarise#mappings#define_default_mappings()"{{{
         \ :<C-u>call <SID>print_current_position()<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_change_current_address)
         \ :<C-u>call <SID>change_current_address()<CR>
+  nnoremap <buffer><silent>
+        \ <Plug>(vinarise_overwrite_from_current_address)
+        \ :<C-u>call <SID>overwrite_from_current_address()<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_move_by_input_address)
         \ :<C-u>call <SID>move_by_input_address('')<CR>
   nnoremap <buffer><silent> <Plug>(vinarise_move_by_input_offset)
@@ -106,6 +109,7 @@ function! vinarise#mappings#define_default_mappings()"{{{
   nmap <buffer> <C-u>     <Plug>(vinarise_prev_half_screen)
   nmap <buffer> <C-g>     <Plug>(vinarise_print_current_position)
   nmap <buffer> r    <Plug>(vinarise_change_current_address)
+  nmap <buffer> R    <Plug>(vinarise_overwrite_from_current_address)
   nmap <buffer> gG    <Plug>(vinarise_move_by_input_address)
   nmap <buffer> go    <Plug>(vinarise_move_by_input_offset)
   nmap <buffer> gg    <Plug>(vinarise_move_to_first_address)
@@ -237,6 +241,45 @@ function! s:change_current_address()"{{{
   setlocal modified
 
   setlocal nomodifiable
+endfunction"}}}
+function! s:overwrite_from_current_address()"{{{
+  " Get current address.
+  let [type, address] = vinarise#parse_address(getline('.'),
+        \ vinarise#get_cur_text(getline('.'), col('.')))
+  if type == 'address'
+    " Invalid.
+    return
+  endif
+
+  let value = ''
+  while 1
+    echo printf('Please input new value from 0x%08x: ', address)
+    let value = input(' 0x', value)
+    redraw
+
+    if value == ''
+      return
+    elseif value !~ '^\x\+$'
+      call vinarise#print_error('The value must be hex.')
+    elseif len(value) % 2 != 0
+      call vinarise#print_error('The value length must be 2^n.')
+    else
+      break
+    endif
+  endwhile
+
+  " Set values.
+  let offset = 0
+  for value in map(split(
+        \ substitute(value, '\x\x\zs', ' ', 'g')), 'str2nr(v:val, 16)')
+    call b:vinarise.set_byte(address + offset, value)
+    let offset += 1
+  endfor
+
+  " Change from current line.
+  call vinarise#mappings#move_to_address(address)
+
+  setlocal modified
 endfunction"}}}
 
 function! s:move_col(is_next)"{{{
@@ -380,9 +423,7 @@ function! s:search_buffer(type, is_reverse, string)"{{{
     let string = input('Please input search binary(! is not pattern) : ', '0x')
     redraw
   elseif a:type ==# 'string'
-    let string = iconv(
-          \ input('Please input search string : '), &encoding,
-          \   vinarise#get_current_vinarise().context.encoding)
+    let string = input('Please input search string : ')
     redraw
   elseif a:type ==# 'regexp'
     let string = input('Please input Python regexp : ')
@@ -439,11 +480,17 @@ function! s:search_buffer(type, is_reverse, string)"{{{
             \ b:vinarise.find_binary(start, binary)
     endif
   elseif a:type ==# 'regexp'
-    let address = b:vinarise.find_regexp(start, string)
+    let address = b:vinarise.find_regexp(start, string,
+          \ &encoding,
+          \  vinarise#get_current_vinarise().context.encoding)
   else
     let address = a:is_reverse ?
-          \ b:vinarise.rfind(start, string) :
-          \ b:vinarise.find(start, string)
+          \ b:vinarise.rfind(start, string,
+          \  &encoding,
+          \  vinarise#get_current_vinarise().context.encoding) :
+          \ b:vinarise.find(start, string,
+          \  &encoding,
+          \  vinarise#get_current_vinarise().context.encoding)
   endif
 
   if address < 0
@@ -465,7 +512,7 @@ function! s:change_encoding()"{{{
   if encoding == ''
     return
   elseif encoding !~?
-        \ vinarise#multibyte#get_supported_encodings_pattern()
+        \ vinarise#multibyte#get_supported_encoding_pattern()
     call vinarise#print_error(
           \ 'encoding type: "'.encoding.'" is not supported.')
     return

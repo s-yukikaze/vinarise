@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: vinarise.vim
 " AUTHOR:  Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 27 Mar 2012.
+" Last Modified: 06 Apr 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -100,11 +100,7 @@ function! vinarise#complete(arglead, cmdline, cursorpos)"{{{
   return sort(filter(_, 'stridx(v:val, a:arglead) == 0'))
 endfunction"}}}
 function! vinarise#complete_encodings(arglead, cmdline, cursorpos)"{{{
-  let encodings = &fileencodings
-  if encodings !~ '\<latin1\>'
-    let encodings .= ',latin1'
-  endif
-  return sort(filter(split(encodings, ','),
+  return sort(filter(vinarise#multibyte#get_supported_encoding_list(),
         \ 'stridx(v:val, a:arglead) == 0'))
 endfunction"}}}
 function! vinarise#get_options()"{{{
@@ -114,6 +110,13 @@ function! vinarise#print_error(string)"{{{
   echohl Error | echo a:string | echohl None
 endfunction"}}}
 function! vinarise#open(filename, context)"{{{
+  if vinarise#util#is_cmdwin()
+    call vinarise#print_error(
+          \ '[vinarise] Command line buffer is detected!')
+    call vinarise#print_error(
+          \ '[vinarise] Please close command line buffer.')
+    return
+  endif
   if empty(s:vinarise_plugins)
     call s:load_plugins()
   endif
@@ -123,34 +126,34 @@ function! vinarise#open(filename, context)"{{{
     let filename = bufname('%')
     if &l:buftype =~ 'nofile'
       call vinarise#print_error(
-            \ 'Nofile buffer is detected. This operation is invalid.')
+            \ '[vinarise] Nofile buffer is detected. This operation is invalid.')
       return
     elseif &l:modified
       call vinarise#print_error(
-            \ 'Modified buffer is detected! This operation is invalid.')
+            \ '[vinarise] Modified buffer is detected! This operation is invalid.')
       return
     endif
   endif
 
   if !filereadable(filename)
     call vinarise#print_error(
-          \ 'File "'.filename.'" is not found.')
+          \ '[vinarise] File "'.filename.'" is not found.')
     return
   endif
 
   let filesize = getfsize(filename)
   if vinarise#util#is_windows() && filesize == 0
     call vinarise#print_error(
-          \ 'File "'.filename.'" is empty. '.
+          \ '[vinarise] File "'.filename.'" is empty. '.
           \ 'vinarise cannot open empty file in Windows.')
     return
   endif
 
   let context = s:initialize_context(a:context)
   if context.encoding !~?
-        \ vinarise#multibyte#get_supported_encodings_pattern()
+        \ vinarise#multibyte#get_supported_encoding_pattern()
     call vinarise#print_error(
-          \ 'encoding type: "'.context.encoding.'" is not supported.')
+          \ '[vinarise] encoding type: "'.context.encoding.'" is not supported.')
     return
   endif
 
@@ -445,23 +448,39 @@ function! s:initialize_vinarise_buffer(context, filename, filesize)"{{{
           \ ".get_percentage_address(vim.eval('a:percentage'))))"
     return address
   endfunction"}}}
+<<<<<<< HEAD
   function! b:vinarise.find(address, str)"{{{
     execute s:if_python.python 'vim.command("let address = " + str('.
+=======
+  function! b:vinarise.find(address, str, from, to)"{{{
+    execute 'python' 'vim.command("let address = " + str('.
+>>>>>>> 2f8b78e3db234fdaa462a9c9736471f217a49881
           \ self.python .
-          \ ".find(vim.eval('a:address'), vim.eval('a:str'))))"
+          \ ".find(vim.eval('a:address'), vim.eval('a:str'),"
+          \ ."vim.eval('a:from'),"
+          \ ."vim.eval('a:to'))))"
     return address
   endfunction"}}}
+<<<<<<< HEAD
   function! b:vinarise.rfind(address, str)"{{{
     execute s:if_python.python 'vim.command("let address = " + str('.
+=======
+  function! b:vinarise.rfind(address, str, from, to)"{{{
+    execute 'python' 'vim.command("let address = " + str('.
+>>>>>>> 2f8b78e3db234fdaa462a9c9736471f217a49881
           \ self.python .
-          \ ".rfind(vim.eval('a:address'), vim.eval('a:str'))))"
+          \ ".rfind(vim.eval('a:address'), vim.eval('a:str'),"
+          \ ."vim.eval('a:from'),"
+          \ ."vim.eval('a:to'))))"
     return address
   endfunction"}}}
-  function! b:vinarise.find_regexp(address, str)"{{{
+  function! b:vinarise.find_regexp(address, str, from, to)"{{{
     try
       execute s:if_python.python 'vim.command("let address = " + str('.
             \ self.python .
-            \ ".find_regexp(vim.eval('a:address'), vim.eval('a:str'))))"
+            \ ".find_regexp(vim.eval('a:address'), vim.eval('a:str'),"
+            \ ."vim.eval('a:from'),"
+            \ ."vim.eval('a:to'))))"
     catch
       call vinarise#print_error('Invalid regexp pattern!')
       return -1

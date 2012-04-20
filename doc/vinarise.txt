@@ -72,8 +72,9 @@ COMMANDS 					*vinarise-commands*
 		Specify file encoding type.
 		If omitted it, "latin1" is used.
 		Note: "latin1" is only supported less than Vim 7.3.
-		Note: "latin1" or "utf-8" encodings are supported in this
-		version.
+		Note: "latin1", "utf-8", "cp932", "euc-jp", "utf-16le",
+		"utf-16be", "ucs-2le" or "ucs-2be" encodings are supported in
+		this version.
 
 The commands of plugins				*:vinarise-sources-commands*
 
@@ -169,6 +170,10 @@ VINARISE BUFFER KEY MAPPINGS 			*vinarise-buffer-key-mappings*
 <Plug>(vinarise_change_current_address)		*<Plug>(vinarise_change_current_address)*
 		Change value in current address.
 
+<Plug>(vinarise_overwrite_from_current_address)
+						*<Plug>(vinarise_overwrite_from_current_address)*
+		Overwrite values from current address.
+
 <Plug>(vinarise_move_to_input_address)		*<Plug>(vinarise_move_to_input_address)*
 		Move to input address. Hexadecimal and decimal are supported.
 		Note: If you input like "50%", move to 50% of filesize.
@@ -238,6 +243,7 @@ k			<Plug>(vinarise_prev_line)
 <C-u>			<Plug>(vinarise_prev_half_screen)
 <C-g>			<Plug>(vinarise_print_current_position)
 r			<Plug>(vinarise_change_current_address)
+R			<Plug>(vinarise_overwrite_from_current_address)
 gG			<Plug>(vinarise_move_to_input_address)
 go			<Plug>(vinarise_move_by_input_offset)
 gg			<Plug>(vinarise_move_to_first_address)
@@ -261,6 +267,19 @@ EXAMPLES					*vinarise-examples*
 >
 ==============================================================================
 CHANGELOG					*vinarise-changelog*
+
+2012-04-13
+- Supported euc-jp.
+
+2012-04-05
+- Fixed search pattern.
+
+2012-03-31
+- Fixed for cmdwin.
+
+2012-03-28
+- Improved encoding completion.
+- Added <Plug>(vinarise_overwrite_from_current_address) mapping.
 
 2012-03-27
 - Added wrapper functions.
