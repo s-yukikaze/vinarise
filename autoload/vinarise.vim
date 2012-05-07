@@ -65,7 +65,7 @@ function! vinarise#complete(arglead, cmdline, cursorpos)"{{{
 
   " Filename completion.
   let _ += map(split(glob(a:arglead . '*'), '\n'),
-        \ "isdirectory(v:val) ? v:val.'/' : v:val")
+        \ "isdirectory(v:val) ? vinarise#util#add_path_separator(v:val) : v:val")
 
   " Option names completion.
   let _ +=  copy(s:vinarise_options)

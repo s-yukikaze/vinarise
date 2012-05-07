@@ -25,6 +25,7 @@
 "=============================================================================
 
 let s:V = vital#of('vinarise')
+let s:Fp = s:V.import('System.Filepath')
 
 function! vinarise#util#truncate_smart(...)"{{{
   return call(s:V.truncate_smart, a:000)
@@ -74,6 +75,12 @@ endfunction
 function! vinarise#util#escape_file_searching(...)
   return call(s:V.escape_file_searching, a:000)
 endfunction
+
+function! vinarise#util#add_path_separator(path)"{{{
+  let path = s:Fp.remove_last_separator(a:path)
+  let sep = s:Fp.separator()
+  return path.sep
+endfunction"}}}
 
 function! vinarise#util#is_cmdwin()"{{{
   try
