@@ -6,7 +6,7 @@ import os.path
 from sys import version_info
 
 class VinariseBuffer:
-    __PYTHON_VAR__ = sys.version_info[:3]
+    __PYTHON_VER__ = sys.version_info[:3]
 
     def open(self, path, is_windows):
         # init vars
@@ -46,7 +46,7 @@ class VinariseBuffer:
             # Re open file.
             self.open(path, is_windows)
 
-    if __PYTHON_VAR__ < (3, 0, 0):
+    if __PYTHON_VER__ < (3, 0, 0):
         # Python < 3.0.0 : mmap.mmap[] behaves like string.
         def get_byte(self, addr):
             return ord(self.mmap[int(addr)])
