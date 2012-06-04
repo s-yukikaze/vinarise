@@ -96,6 +96,8 @@ g:vinarise_enable_auto_detect			*g:vinarise_enable_auto_detect*
 
 g:vinarise_detect_large_file_size		*g:vinarise_detect_large_file_size*
 		This variable is |vinarise| detect large file size.
+		If this variable value is less equal than 0, will disable large
+		file detection.
 		Note: This variable is valid in |g:vinarise_enable_auto_detect|
 		is 1.
 		
@@ -220,6 +222,9 @@ VINARISE BUFFER KEY MAPPINGS 			*vinarise-buffer-key-mappings*
 <Plug>(vinarise_redraw)				*<Plug>(vinarise_redraw)*
 		Redraw current vinarise buffer.
 
+<Plug>(vinarise_reload)				*<Plug>(vinarise_reload)*
+		Reload opening file.
+
 Normal mode key mappings.
 
 Normal mode default key mappings.
@@ -257,6 +262,7 @@ n			<Plug>(vinarise_search_last_pattern)
 N			<Plug>(vinarise_search_last_pattern_reverse)
 E			<Plug>(vinarise_change_encoding)
 <C-l>			<Plug>(vinarise_redraw)
+g<C-l>			<Plug>(vinarise_reload)
 
 ==============================================================================
 EXAMPLES					*vinarise-examples*
@@ -267,6 +273,28 @@ EXAMPLES					*vinarise-examples*
 >
 ==============================================================================
 CHANGELOG					*vinarise-changelog*
+
+2012-05-30
+- Fixed filename completion.
+
+2012-05-28
+- Deleted debug message.
+
+2012-05-27
+- Fixed for cpo.
+
+2012-05-19
+- Added <Plug>(vinarise_reload) mapping.
+- Fixed g:vinarise_detect_large_file_size problem.
+
+2012-05-17
+- Fixed auto detection error.
+
+2012-05-16
+- Fixed completion behavior.
+
+2012-05-14
+- Fixed display byte.
 
 2012-05-04
 - Improved empty file behavior.

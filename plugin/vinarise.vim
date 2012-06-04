@@ -1,7 +1,7 @@
 "=============================================================================
 " FILE: vinarise.vim
 " AUTHOR:  Shougo Matsushita <Shougo.Matsu@gmail.com>
-" Last Modified: 04 May 2012.
+" Last Modified: 27 May 2012.
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
@@ -30,6 +30,9 @@ elseif v:version < 702
   echoerr 'vinarise does not work this version of Vim (' . v:version . ').'
   finish
 endif
+
+let s:save_cpo = &cpo
+set cpo&vim
 
 " Global options definition."{{{
 let g:vinarise_enable_auto_detect =
@@ -83,7 +86,8 @@ function! s:browse_check(path)"{{{
     let path = vinarise#util#expand('~')
   endif
 
-  if &filetype ==# 'vinarise' || !filereadable(path)
+  if (&filetype ==# 'vinarise' && line('$') != 1)
+        \ || !filereadable(path)
         \ || !g:vinarise_enable_auto_detect
         \ || path =~# '/.git/index$'
     " Note: vim-fugitive opens ".git/index" binary file when executed
@@ -99,10 +103,14 @@ function! s:browse_check(path)"{{{
   if lines[0] =~ '\%(^.ELF\|!<arch>\|^MZ\)'
     call vinarise#dump#open(path, 1)
   elseif lines[0] =~ '[\x00-\x09\x10-\x1a\x1c-\x1f]\{5,}'
-        \ || getfsize(path) > g:vinarise_detect_large_file_size
+        \ || (g:vinarise_detect_large_file_size > 0 &&
+        \        getfsize(path) > g:vinarise_detect_large_file_size)
     call s:call_vinarise({'overwrite' : 1}, path)
   endif
 endfunction"}}}
+
+let &cpo = s:save_cpo
+unlet s:save_cpo
 
 let g:loaded_vinarise = 1
 
