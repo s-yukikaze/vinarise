@@ -25,6 +25,10 @@
 " Version: 0.3, for Vim 7.2
 "=============================================================================
 
+
+let s:save_cpo = &cpo
+set cpo&vim
+
 " Check Python."{{{
 let s:if_pythons_available = filter([
 \   {'python': 'python3','pyfile': 'py3file'},
@@ -47,9 +51,6 @@ else
   finish
 endif
 "}}}
-
-let s:save_cpo = &cpo
-set cpo&vim
 
 " Constants"{{{
 let s:FALSE = 0
